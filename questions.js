@@ -125,19 +125,8 @@ function displayQuestion() {
 
     modalTitle.textContent = `${quizState.subject} - ${quizState.unit} - ${quizState.lesson}`;
     
-    // Clear previous content
+    // Build question container
     questionContent.innerHTML = '';
-    
-    // Check if it's a matching question
-    if (currentQuestion.type === 'matching') {
-        displayMatchingQuestion(questionContent, currentQuestion);
-    } else {
-        // Regular multiple choice question
-        displayMultipleChoiceQuestion(questionContent, currentQuestion);
-    }
-}
-
-function displayMultipleChoiceQuestion(container, question) {
     const questionDiv = document.createElement('div');
     questionDiv.className = 'question-container';
     
@@ -150,15 +139,15 @@ function displayMultipleChoiceQuestion(container, question) {
     // Question text
     const questionText = document.createElement('p');
     questionText.className = 'question-text';
-    questionText.innerHTML = `<strong>Question:</strong> ${question.question}`;
+    questionText.innerHTML = `<strong>Question:</strong> ${currentQuestion.question}`;
     questionDiv.appendChild(questionText);
     
     // Options container
-    if (question.options && question.options.length > 0) {
+    if (currentQuestion.options && currentQuestion.options.length > 0) {
         const optionsDiv = document.createElement('div');
         optionsDiv.className = 'options-container';
         
-        question.options.forEach((option, index) => {
+        currentQuestion.options.forEach((option, index) => {
             const optionLabel = document.createElement('label');
             optionLabel.className = 'option-label';
             
@@ -167,16 +156,6 @@ function displayMultipleChoiceQuestion(container, question) {
             optionInput.name = 'question-option';
             optionInput.value = index;
             optionInput.className = 'option-input';
-            
-            // Add change event listener to enable submit button when an option is selected
-            optionInput.addEventListener('change', function() {
-                document.querySelector('.submit-btn').disabled = false;
-            });
-            
-            // Check if this option was previously selected
-            if (quizState.selectedAnswers[quizState.currentQuestionIndex] === index) {
-                optionInput.checked = true;
-            }
             
             const optionText = document.createElement('span');
             optionText.className = 'option-text';
@@ -204,8 +183,6 @@ function displayMultipleChoiceQuestion(container, question) {
     submitBtn.className = 'btn submit-btn';
     submitBtn.textContent = 'Submit Answer';
     submitBtn.onclick = checkAnswer;
-    // Disable submit button if no answer is selected yet
-    submitBtn.disabled = quizState.selectedAnswers[quizState.currentQuestionIndex] === null;
     
     const nextBtn = document.createElement('button');
     nextBtn.className = 'btn next-btn hidden';
@@ -216,252 +193,7 @@ function displayMultipleChoiceQuestion(container, question) {
     buttonsDiv.appendChild(nextBtn);
     questionDiv.appendChild(buttonsDiv);
     
-    container.appendChild(questionDiv);
-}
-
-function displayMatchingQuestion(container, question) {
-    const questionDiv = document.createElement('div');
-    questionDiv.className = 'question-container';
-    
-    // Question number and progress
-    const progressText = document.createElement('div');
-    progressText.className = 'question-progress';
-    progressText.textContent = `Question ${quizState.currentQuestionIndex + 1} of ${quizState.totalQuestions}`;
-    questionDiv.appendChild(progressText);
-    
-    // Question text
-    const questionText = document.createElement('p');
-    questionText.className = 'question-text';
-    questionText.innerHTML = `<strong>Question:</strong> ${question.question}`;
-    questionDiv.appendChild(questionText);
-    
-    // Create matching container
-    const matchingContainer = document.createElement('div');
-    matchingContainer.className = 'matching-container';
-    matchingContainer.id = `matching-${quizState.currentQuestionIndex}`;
-    
-    // Add instruction
-    const instruction = document.createElement('p');
-    instruction.className = 'matching-instruction';
-    instruction.textContent = 'Drag items from the right column to match with items in the left column';
-    matchingContainer.appendChild(instruction);
-    
-    // Create matching items container
-    const matchingItems = document.createElement('div');
-    matchingItems.className = 'matching-items';
-    
-    // Left column (fixed items)
-    const leftColumn = document.createElement('div');
-    leftColumn.className = 'matching-column left-column';
-    
-    question.pairs.forEach((pair, pairIndex) => {
-        const leftItem = document.createElement('div');
-        leftItem.className = 'matching-item left-item';
-        leftItem.dataset.index = pairIndex;
-        leftItem.textContent = pair.left;
-        leftColumn.appendChild(leftItem);
-    });
-    
-    // Right column (draggable answers)
-    const rightColumn = document.createElement('div');
-    rightColumn.className = 'matching-column right-column';
-    
-    const matchingAnswers = document.createElement('div');
-    matchingAnswers.className = 'matching-answers';
-    
-    // Shuffle the pairs for the right column
-    const shuffledPairs = [...question.pairs];
-    shuffleArray(shuffledPairs);
-    
-    shuffledPairs.forEach((pair, pairIndex) => {
-        const rightItem = document.createElement('div');
-        rightItem.className = 'matching-item right-item';
-        rightItem.draggable = true;
-        rightItem.dataset.answerIndex = pairIndex;
-        rightItem.dataset.value = pair.right;
-        rightItem.textContent = pair.right;
-        matchingAnswers.appendChild(rightItem);
-    });
-    
-    rightColumn.appendChild(matchingAnswers);
-    
-    // Add columns to the matching items container
-    matchingItems.appendChild(leftColumn);
-    matchingItems.appendChild(rightColumn);
-    matchingContainer.appendChild(matchingItems);
-    
-    // Add feedback div
-    const feedbackDiv = document.createElement('div');
-    feedbackDiv.className = 'matching-feedback';
-    matchingContainer.appendChild(feedbackDiv);
-    
-    // Add buttons container
-    const btnContainer = document.createElement('div');
-    btnContainer.className = 'matching-btn-container';
-    
-    const resetBtn = document.createElement('button');
-    resetBtn.className = 'btn matching-reset-btn';
-    resetBtn.dataset.index = quizState.currentQuestionIndex;
-    resetBtn.textContent = 'Reset';
-    
-    const checkBtn = document.createElement('button');
-    checkBtn.className = 'btn matching-check-btn';
-    checkBtn.dataset.index = quizState.currentQuestionIndex;
-    checkBtn.textContent = 'Check Answers';
-    
-    btnContainer.appendChild(resetBtn);
-    btnContainer.appendChild(checkBtn);
-    matchingContainer.appendChild(btnContainer);
-    
-    // Add next button container
-    const nextBtnContainer = document.createElement('div');
-    nextBtnContainer.className = 'quiz-buttons';
-    
-    const nextBtn = document.createElement('button');
-    nextBtn.className = 'btn next-btn hidden';
-    nextBtn.textContent = quizState.currentQuestionIndex === quizState.totalQuestions - 1 ? 'See Results' : 'Next Question';
-    nextBtn.onclick = nextQuestion;
-    
-    nextBtnContainer.appendChild(nextBtn);
-    
-    // Add everything to the question div
-    questionDiv.appendChild(matchingContainer);
-    questionDiv.appendChild(nextBtnContainer);
-    
-    container.appendChild(questionDiv);
-    
-    // Initialize drag and drop functionality
-    initializeMatchingQuestion(question);
-}
-
-function initializeMatchingQuestion(question) {
-    const matchingContainer = document.getElementById(`matching-${quizState.currentQuestionIndex}`);
-    if (!matchingContainer) return;
-    
-    const draggableItems = matchingContainer.querySelectorAll('.right-item');
-    const leftItems = matchingContainer.querySelectorAll('.left-item');
-    const resetBtn = matchingContainer.querySelector('.matching-reset-btn');
-    const checkBtn = matchingContainer.querySelector('.matching-check-btn');
-    const feedbackDiv = matchingContainer.querySelector('.matching-feedback');
-    
-    // Store the correct answers for checking later
-    const correctAnswers = question.pairs.map(pair => pair.right);
-    
-    // Add event listeners for draggable items
-    draggableItems.forEach(item => {
-        item.addEventListener('dragstart', function(e) {
-            e.dataTransfer.setData('text/plain', e.target.dataset.answerIndex);
-            e.target.classList.add('dragging');
-        });
-        
-        item.addEventListener('dragend', function() {
-            this.classList.remove('dragging');
-        });
-    });
-    
-    // Add event listeners for left items (drop targets)
-    leftItems.forEach(item => {
-        item.addEventListener('dragover', function(e) {
-            e.preventDefault();
-            this.classList.add('highlight');
-        });
-        
-        item.addEventListener('dragleave', function() {
-            this.classList.remove('highlight');
-        });
-        
-        item.addEventListener('drop', function(e) {
-            e.preventDefault();
-            this.classList.remove('highlight');
-            
-            const draggedItemIndex = e.dataTransfer.getData('text/plain');
-            const draggedItem = matchingContainer.querySelector(`.right-item[data-answer-index="${draggedItemIndex}"]`);
-            
-            if (draggedItem) {
-                // Clear any previous matches for this target
-                const previousMatch = this.querySelector('.right-item');
-                if (previousMatch) {
-                    previousMatch.remove();
-                }
-                
-                // Add the dragged item to this drop target
-                const clonedItem = draggedItem.cloneNode(true);
-                this.appendChild(clonedItem);
-                
-                // Hide the original
-                draggedItem.style.display = 'none';
-            }
-        });
-    });
-    
-    // Reset button functionality
-    resetBtn.addEventListener('click', function() {
-        // Reset feedback
-        feedbackDiv.innerHTML = '';
-        feedbackDiv.className = 'matching-feedback';
-        
-        // Remove all matched items
-        leftItems.forEach(item => {
-            const matchedItem = item.querySelector('.right-item');
-            if (matchedItem) {
-                matchedItem.remove();
-            }
-            item.classList.remove('matched', 'incorrect');
-        });
-        
-        // Show all original draggable items
-        draggableItems.forEach(item => {
-            item.style.display = 'block';
-        });
-    });
-    
-    // Check answers button functionality
-    checkBtn.addEventListener('click', function() {
-        let allCorrect = true;
-        let matchedCount = 0;
-        
-        leftItems.forEach((item, index) => {
-            const matchedItem = item.querySelector('.right-item');
-            
-            if (matchedItem) {
-                matchedCount++;
-                const userAnswer = matchedItem.getAttribute('data-value');
-                const correctAnswer = correctAnswers[index];
-                
-                if (userAnswer === correctAnswer) {
-                    item.classList.add('matched');
-                    item.classList.remove('incorrect');
-                } else {
-                    item.classList.add('incorrect');
-                    item.classList.remove('matched');
-                    allCorrect = false;
-                }
-            } else {
-                allCorrect = false;
-            }
-        });
-        
-        // Show feedback
-        if (matchedCount === 0) {
-            feedbackDiv.innerHTML = 'Please match some items before checking.';
-            feedbackDiv.className = 'matching-feedback error';
-        } else if (matchedCount < leftItems.length) {
-            feedbackDiv.innerHTML = 'Please match all items before checking.';
-            feedbackDiv.className = 'matching-feedback error';
-        } else if (allCorrect) {
-            feedbackDiv.innerHTML = 'Correct! All matches are correct.';
-            feedbackDiv.className = 'matching-feedback success';
-            
-            // Update quiz state
-            quizState.correctAnswers++;
-            
-            // Show next button
-            document.querySelector('.next-btn').classList.remove('hidden');
-        } else {
-            feedbackDiv.innerHTML = 'Some matches are incorrect. Try again.';
-            feedbackDiv.className = 'matching-feedback error';
-        }
-    });
+    questionContent.appendChild(questionDiv);
 }
 
 function checkAnswer() {
@@ -599,47 +331,23 @@ function reviewAnswers() {
     
     // Display each question with the user's answer
     quizState.questions.forEach((question, index) => {
-        const questionReview = document.createElement('div');
-        questionReview.className = 'question-review';
+        const selectedAnswer = quizState.selectedAnswers[index];
+        const isCorrect = selectedAnswer !== null && question.options[selectedAnswer] === question.answer;
         
-        // For matching questions
-        if (question.type === 'matching') {
-            const isCorrect = index < quizState.correctAnswers; // This is simplistic; ideally track per-question results
-            questionReview.classList.add(isCorrect ? 'correct' : 'incorrect');
-            
-            questionReview.innerHTML = `
-                <div class="review-question-header">
-                    <span class="review-question-number">Question ${index + 1}</span>
-                    <span class="review-status">${isCorrect ? '✓ Correct' : '✗ Incorrect'}</span>
-                </div>
-                <p class="review-question-text">${question.question}</p>
-                <div class="review-matching">
-                    <p><strong>Correct matches:</strong></p>
-                    <ul class="matching-review-list">
-                        ${question.pairs.map(pair => `
-                            <li>${pair.left} → ${pair.right}</li>
-                        `).join('')}
-                    </ul>
-                </div>
-            `;
-        } else {
-            // Regular multiple choice questions
-            const selectedAnswer = quizState.selectedAnswers[index];
-            const isCorrect = selectedAnswer !== null && question.options[selectedAnswer] === question.answer;
-            questionReview.classList.add(isCorrect ? 'correct' : 'incorrect');
-            
-            questionReview.innerHTML = `
-                <div class="review-question-header">
-                    <span class="review-question-number">Question ${index + 1}</span>
-                    <span class="review-status">${isCorrect ? '✓ Correct' : '✗ Incorrect'}</span>
-                </div>
-                <p class="review-question-text">${question.question}</p>
-                <div class="review-answers">
-                    <p><strong>Your answer:</strong> ${selectedAnswer !== null ? question.options[selectedAnswer] : 'No answer selected'}</p>
-                    <p><strong>Correct answer:</strong> ${question.answer}</p>
-                </div>
-            `;
-        }
+        const questionReview = document.createElement('div');
+        questionReview.className = `question-review ${isCorrect ? 'correct' : 'incorrect'}`;
+        
+        questionReview.innerHTML = `
+            <div class="review-question-header">
+                <span class="review-question-number">Question ${index + 1}</span>
+                <span class="review-status">${isCorrect ? '✓ Correct' : '✗ Incorrect'}</span>
+            </div>
+            <p class="review-question-text">${question.question}</p>
+            <div class="review-answers">
+                <p><strong>Your answer:</strong> ${selectedAnswer !== null ? question.options[selectedAnswer] : 'No answer selected'}</p>
+                <p><strong>Correct answer:</strong> ${question.answer}</p>
+            </div>
+        `;
         
         reviewDiv.appendChild(questionReview);
     });
@@ -706,13 +414,4 @@ function getQuestions(subject, unitTitle, lessonTitle) {
         console.error("Error finding questions:", error);
         return [];
     }
-}
-
-// Helper function to shuffle an array (Fisher-Yates algorithm)
-function shuffleArray(array) {
-    for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
-    }
-    return array;
 }
