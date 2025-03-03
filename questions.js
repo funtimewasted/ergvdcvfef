@@ -82,7 +82,17 @@ function handleSectionClick(subject, unit, lesson) {
         // Get the questions for this lesson from the data structure
         const questions = getQuestions(subject, unit, lesson);
         
+        // Debug log
+        console.log('Questions retrieved:', questions);
+        
         if (questions && questions.length > 0) {
+            // Check question structure
+            questions.forEach((q, i) => {
+                if (!q.question) console.error(`Question ${i} is missing 'question' property`);
+                if (!q.options && (!q.type || q.type !== 'matching')) 
+                    console.error(`Question ${i} is missing 'options' property and is not a matching question`);
+            });
+            
             startQuiz(subject, unit, lesson, questions);
         } else {
             // No questions found for this lesson
@@ -135,6 +145,9 @@ function displayQuestion() {
         // Default to multiple choice if no type specified or type is not 'matching'
         displayMultipleChoiceQuestion(questionContent, currentQuestion);
     }
+    
+    // Make modal visible (in case it's not)
+    modal.style.display = 'block';
 }
 
 function displayMultipleChoiceQuestion(container, question) {
@@ -188,6 +201,13 @@ function displayMultipleChoiceQuestion(container, question) {
         });
         
         questionDiv.appendChild(optionsDiv);
+    } else {
+        // Handle case where options might be missing
+        const errorMsg = document.createElement('p');
+        errorMsg.className = 'error-message';
+        errorMsg.textContent = 'Error: No options available for this question.';
+        questionDiv.appendChild(errorMsg);
+        console.error('No options for question:', question);
     }
     
     // Feedback section (initially hidden)
@@ -217,6 +237,9 @@ function displayMultipleChoiceQuestion(container, question) {
     questionDiv.appendChild(buttonsDiv);
     
     container.appendChild(questionDiv);
+    
+    // Debug logging
+    console.log('Rendered question:', question);
 }
 
 function displayMatchingQuestion(container, question) {
